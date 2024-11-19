@@ -1,69 +1,70 @@
-﻿<?php
+<?php
 
 // Replace this with your own email address
 $siteOwnersEmail = 'yaiche.abdelhalim@gmail.com';
 
+if ($_POST) {
+    // Sanitize and trim inputs
+    $name = htmlspecialchars(trim($_POST['contactName']));
+    $email = htmlspecialchars(trim($_POST['contactEmail']));
+    $subject = htmlspecialchars(trim($_POST['contactSubject']));
+    $contact_message = htmlspecialchars(trim($_POST['contactMessage']));
 
-if($_POST) {
+    $error = [];
 
-   $name = trim(stripslashes($_POST['contactName']));
-   $email = trim(stripslashes($_POST['contactEmail']));
-   $subject = trim(stripslashes($_POST['contactSubject']));
-   $contact_message = trim(stripslashes($_POST['contactMessage']));
+    // Validate Name
+    if (strlen($name) < 2) {
+        $error['name'] = "Please enter your name.";
+    }
 
-   // Check Name
-	if (strlen($name) < 2) {
-		$error['name'] = "Please enter your name.";
-	}
-	// Check Email
-	if (!preg_match('/^[a-z0-9&\'\.\-_\+]+@[a-z0-9\-]+\.([a-z0-9\-]+\.)*+[a-z]{2}/is', $email)) {
-		$error['email'] = "Please enter a valid email address.";
-	}
-	// Check Message
-	if (strlen($contact_message) < 15) {
-		$error['message'] = "Please enter your message. It should have at least 15 characters.";
-	}
-   // Subject
-	if ($subject == '') { $subject = "Contact Form Submission"; }
+    // Validate Email
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error['email'] = "Please enter a valid email address.";
+    }
 
+    // Validate Message
+    if (strlen($contact_message) < 15) {
+        $error['message'] = "Please enter your message. It should have at least 15 characters.";
+    }
 
-   // Set Message
-   $message .= "Email from: " . $name . "<br />";
-	$message .= "Email address: " . $email . "<br />";
-   $message .= "Message: <br />";
-   $message .= $contact_message;
-   $message .= "<br /> ----- <br /> This email was sent from your site's contact form. <br />";
+    // Default Subject
+    if ($subject == '') {
+        $subject = "Contact Form Submission";
+    }
 
-   // Set From: header
-   $from =  $name . " <" . $email . ">";
+    // Prepare Message
+    $message = "<strong>Email from:</strong> " . $name . "<br />";
+    $message .= "<strong>Email address:</strong> " . $email . "<br />";
+    $message .= "<strong>Message:</strong><br />";
+    $message .= nl2br($contact_message); // Preserve line breaks
+    $message .= "<br /> ----- <br /> This email was sent from your site's contact form. <br />";
 
-   // Email Headers
-	$headers = "From: " . $from . "\r\n";
-	$headers .= "Reply-To: ". $email . "\r\n";
- 	$headers .= "MIME-Version: 1.0\r\n";
-	$headers .= "Content-Type: text/html; charset=ISO-8859-1\r\n";
+    // Set From: header
+    $from = $name . " <" . $email . ">";
 
+    // Email Headers
+    $headers = "From: " . $from . "\r\n";
+    $headers .= "Reply-To: " . $email . "\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
 
-   if (!$error) {
+    // Send Email
+    if (empty($error)) {
+        ini_set("sendmail_from", $siteOwnersEmail); // For Windows server
+        $mail = mail($siteOwnersEmail, $subject, $message, $headers);
 
-      ini_set("sendmail_from", $siteOwnersEmail); // for windows server
-      $mail = mail($siteOwnersEmail, $subject, $message, $headers);
-
-		if ($mail) { echo "OK"; }
-      else { echo "Something went wrong. Please try again."; }
-		
-	} # end if - no validation error
-
-	else {
-
-		$response = (isset($error['name'])) ? $error['name'] . "<br /> \n" : null;
-		$response .= (isset($error['email'])) ? $error['email'] . "<br /> \n" : null;
-		$response .= (isset($error['message'])) ? $error['message'] . "<br />" : null;
-		
-		echo $response;
-
-	} # end if - there was a validation error
-
+        if ($mail) {
+            echo "OK";
+        } else {
+            echo "Something went wrong. Please try again.";
+        }
+    } else {
+        // Return validation errors
+        $response = '';
+        foreach ($error as $key => $value) {
+            $response .= $value . "<br />";
+        }
+        echo $response;
+    }
 }
-
 ?>
